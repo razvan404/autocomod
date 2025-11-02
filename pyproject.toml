@@ -1,0 +1,23 @@
+[project]
+name = "autocomod"
+version = "0.0.0"
+description = "Automated Code Modularisation"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "colorlog>=6.10.1",
+    "pydantic>=2.12.3",
+    "pydantic-settings>=2.11.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black==25.9.0",
+]
+data = [
+    "gitpython>=3.1.45",
+]
+all = [
+    "autocomod[dev]",
+    "autocomod[data]",
+]
