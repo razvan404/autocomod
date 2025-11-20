@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "colorlog>=6.10.1",
+    "pandas>=2.3.3",
     "pydantic>=2.12.3",
     "pydantic-settings>=2.11.0",
 ]
@@ -13,6 +14,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "black==25.9.0",
+    "pytest>=8.0.0",
 ]
 data = [
     "gitpython>=3.1.45",
