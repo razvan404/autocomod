@@ -1,6 +1,6 @@
 # Project-related files
 repos/
-files/
+data/
 
 # OS Related Files
 .DS_Store

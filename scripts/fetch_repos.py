@@ -10,7 +10,7 @@ from autocomod.logger import logger
 
 class FetcherSettings(Settings):
     repos_dir: str = "repos/"
-    repos_file: str = "files/repos.csv"
+    repos_file: str = "data/repos.csv"
     max_workers: int = 12
 
 
