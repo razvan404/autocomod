@@ -1,6 +1,7 @@
 # Project-related files
 repos/
 data/
+checkpoints/
 
 # OS Related Files
 .DS_Store
