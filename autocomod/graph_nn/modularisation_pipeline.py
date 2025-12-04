@@ -10,7 +10,7 @@ from .contrastive_loss import supervised_contrastive_loss
 from .metrics import MetricsComputing
 
 
-class GnnPipeline:
+class GnnModularisationPipeline:
     def __init__(
         self,
         model: nn.Module,
@@ -64,7 +64,6 @@ class GnnPipeline:
 
     def _inference_loader(self, loader: DataLoader, training: bool = True):
         metrics = defaultdict(float)
-
         for batch in loader:
             _, h, _, losses = self.inference(batch, training=training)
             for key, value in losses.items():
@@ -75,21 +74,34 @@ class GnnPipeline:
                 h, true_labels, batch.edge_index
             ).items():
                 metrics[key] += value
-
         for key, value in metrics.items():
             metrics[key] /= len(loader)
-
         return metrics
 
     def train(self, loader: DataLoader):
         self.model.train()
         self.projector.train()
+        self.root_classifier.train()
         return self._inference_loader(loader, training=True)
 
     def validate(self, loader: DataLoader):
         self.model.eval()
         self.projector.eval()
+        self.root_classifier.eval()
         return self._inference_loader(loader, training=False)
+
+    @classmethod
+    def ground_truth_metrics(cls, loader: DataLoader):
+        metrics = defaultdict(float)
+        for batch in loader:
+            true_labels = batch.y
+            for key, value in MetricsComputing.compute_ground_truth(
+                true_labels, batch.edge_index
+            ).items():
+                metrics[key] += value
+        for key, value in metrics.items():
+            metrics[key] /= len(loader)
+        return metrics
 
     def save(self, filepath: str) -> None:
         checkpoint = {
@@ -110,7 +122,7 @@ class GnnPipeline:
         root_classifier: nn.Module,
         optimizer: optim.Optimizer,
         device: torch.device | None = None,
-    ) -> "GnnPipeline":
+    ) -> "GnnModularisationPipeline":
         checkpoint = torch.load(filepath, map_location="cpu", weights_only=True)
 
         model.load_state_dict(checkpoint["model_state_dict"])

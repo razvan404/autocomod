@@ -43,6 +43,23 @@ class MetricsComputing:
         }
 
     @classmethod
+    def compute_ground_truth(
+        cls, true_labels: torch.Tensor, edge_index: torch.Tensor
+    ) -> dict[str, float]:
+        true = true_labels.detach().cpu().numpy()
+        edges = edge_index.t().detach().cpu().numpy()
+
+        mod_q = cls.compute_modularity_nx(edges, true)
+        se_metrics = cls.compute_se_metrics(edges, true)
+
+        return {
+            "ari": 1.0,
+            "nmi": 1.0,
+            "modularity": mod_q,
+            **se_metrics,
+        }
+
+    @classmethod
     def compute_ari(cls, pred: np.ndarray, true_labels: np.ndarray):
         ari = adjusted_rand_score(true_labels, pred)
 

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Callable
+from typing import Callable
 
 import torch
 from torch_geometric.data import InMemoryDataset, Data

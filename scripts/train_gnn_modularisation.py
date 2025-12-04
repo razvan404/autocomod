@@ -10,7 +10,7 @@ from autocomod.graph_nn import (
     GnnEncoder,
     ProjectionHead,
     ClassificationHead,
-    GnnPipeline,
+    GnnModularisationPipeline,
 )
 from autocomod.graphs_dataset import GraphsDataset
 from autocomod.logger import logger
@@ -83,7 +83,7 @@ def train_gnn(settings: GnnTrainerSettings):
 
     if settings.continue_training and checkpoint_path.exists():
         logger.info(f"Loading checkpoint from {checkpoint_path}")
-        pipeline = GnnPipeline.load(
+        pipeline = GnnModularisationPipeline.load(
             str(checkpoint_path), model, projector, root_classifier, optimizer
         )
 
@@ -99,7 +99,9 @@ def train_gnn(settings: GnnTrainerSettings):
 
         logger.info(f"Resuming training from epoch {start_epoch}")
     else:
-        pipeline = GnnPipeline(model, projector, root_classifier, optimizer)
+        pipeline = GnnModularisationPipeline(
+            model, projector, root_classifier, optimizer
+        )
         logger.info("Starting training from scratch")
 
     # Training loop
