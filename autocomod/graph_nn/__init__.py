@@ -3,3 +3,4 @@ from .contrastive_loss import supervised_contrastive_loss
 from .encoder import GnnEncoder
 from .projector import ProjectionHead
 from .modularisation_pipeline import GnnModularisationPipeline
+from .module_classification_pipeline import GnnModuleClassificationPipeline
