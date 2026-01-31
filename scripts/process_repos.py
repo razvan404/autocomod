@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from autocomod.parsers import RepoParser
+from autocomod.parsers import RepoParser, RepoHasInitDependencyError
 from autocomod.logger import logger
 from autocomod.settings import Settings
 
@@ -31,6 +31,11 @@ def process_single_repo(
     try:
         parser = RepoParser(repo_path)
         nodes_data, edges_data = parser.compute_graph_data()
+    except RepoHasInitDependencyError as exc:
+        logger.warning(
+            f"Skipping `{repo_name}`: __init__.py defines '{exc.imported_name}' which is imported elsewhere"
+        )
+        return
     except Exception as exc:
         logger.error(f"Failed to parse `{repo_name}`: {exc}")
         return
@@ -46,13 +51,16 @@ def process_repos(settings: ReposProcessorSettings):
     if settings.repo_names:
         if isinstance(settings.repo_names, str):
             settings.repo_names = [settings.repo_names]
-        repos = repos[repos.id.isin(settings.repo_names)]
+        repos_to_process = repos[repos.id.isin(settings.repo_names)]
+    else:
+        repos_to_process = repos
+
     extractions_dir = Path(settings.extractions_dir)
     extractions_dir.mkdir(parents=True, exist_ok=True)
 
     with ThreadPoolExecutor(max_workers=settings.max_workers) as executor:
-        futures = []
-        for _, repo_data in repos.iterrows():
+        futures = {}
+        for _, repo_data in repos_to_process.iterrows():
             repo_name, repo_src = repo_data.id, repo_data.source
             graph_data_file = extractions_dir / f"{repo_name}.json"
 
@@ -69,7 +77,7 @@ def process_repos(settings: ReposProcessorSettings):
                 settings.repos_dir,
                 graph_data_file,
             )
-            futures.append(future)
+            futures[future] = repo_name
 
         for future in as_completed(futures):
             future.result()

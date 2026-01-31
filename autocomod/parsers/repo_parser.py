@@ -6,6 +6,7 @@ from typing import List, Literal
 import jedi
 
 from autocomod.logger import logger
+from autocomod.parsers.init_filter import InitFileAnalyzer, RepoHasInitDependencyError
 
 
 class RepoParser:
@@ -13,13 +14,32 @@ class RepoParser:
         self._repo_path = repo_path
         self._absolute_repo_path = repo_path.absolute()
         self._repo_name = repo_path.name
+        self._init_files_to_filter = self._analyze_init_files()
         self._files = self._collect_files()
 
     def compute_graph_data(self):
         return self._build_nodes(), self._build_edges()
 
+    def _analyze_init_files(self) -> set[Path]:
+        should_skip, init_files, reason = InitFileAnalyzer.analyze_repo(self._repo_path)
+
+        if should_skip:
+            # Find details for the error
+            for init_file in self._repo_path.rglob("__init__.py"):
+                defined = InitFileAnalyzer.get_defined_names(init_file)
+                if defined:
+                    raise RepoHasInitDependencyError(
+                        self._repo_path, init_file, next(iter(defined))
+                    )
+
+        return set(init_files)
+
     def _collect_files(self) -> List[Path]:
-        return [path for path in self._repo_path.rglob("*.py")]
+        return [
+            path
+            for path in self._repo_path.rglob("*.py")
+            if path not in self._init_files_to_filter
+        ]
 
     def _path_to_module(self, file_path: Path) -> str:
         """Converts path/to/file.py to path.to.file module name"""
@@ -99,7 +119,11 @@ class RepoParser:
 
             # Iterate over all names/expressions
             for name in script.get_names(all_scopes=True):
-                if name.type == "statement":
+                # Accessing name.type can trigger Jedi inference which may fail
+                try:
+                    if name.type == "statement":
+                        continue
+                except Exception:
                     continue
 
                 # Infer the symbol referenced at this location
@@ -117,7 +141,18 @@ class RepoParser:
                     ):
                         continue
 
-                    dest = self._path_to_module(Path(target.module_path))
+                    # Verify path is within repo (Jedi may resolve to site-packages)
+                    target_path = Path(target.module_path)
+                    try:
+                        rel_path = target_path.relative_to(self._absolute_repo_path)
+                    except ValueError:
+                        continue
+
+                    # Skip edges to filtered __init__.py files
+                    if (self._repo_path / rel_path) in self._init_files_to_filter:
+                        continue
+
+                    dest = self._path_to_module(target_path)
                     if dest == source:
                         continue
 
